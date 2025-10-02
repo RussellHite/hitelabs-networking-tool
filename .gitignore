@@ -1,0 +1,28 @@
+# Environment variables - Contains real API keys
+.env
+
+# Production build - Contains real API keys
+index-production.html
+
+# NPM dependencies
+node_modules/
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build files (if added later)
+dist/
+build/

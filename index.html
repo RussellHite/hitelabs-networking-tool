@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Networking Follow-Up Tool</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        /* Status Bar */
+        #app-status {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .status-loading {
+            background: #FFA500;
+            color: white;
+        }
+
+        .status-ready {
+            background: #4CAF50;
+            color: white;
+        }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loading-text {
+            color: white;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        /* Messages */
+        .error-message, .success-message, #status-message {
+            position: fixed;
+            top: 60px;
+            left: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 9998;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ef5350;
+        }
+
+        .success-message, #status-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 2px solid #66bb6a;
+        }
+
+        .error-message.show, .success-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Main App Container */
+        #app {
+            margin-top: 50px;
+            padding-bottom: 50px;
+        }
+
+        /* Section Styles */
+        .section {
+            background: white;
+            margin: 20px;
+            padding: 30px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            min-height: 400px;
+            transition: all 0.3s ease;
+        }
+
+        .section.locked {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .section.active {
+            border-left: 5px solid #2D5A7A;
+        }
+
+        .section.complete {
+            background: #f0f9ff;
+        }
+
+        .section-header {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .section-header h2 {
+            color: #2D5A7A;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .section-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .section-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Form Elements */
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="url"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #2D5A7A;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Buttons */
+        button {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #2D5A7A;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e3f54;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: #757575;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #616161;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button-group button {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        /* Image Preview */
+        .image-preview {
+            position: relative;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            min-height: 100px;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto 10px;
+        }
+
+        .image-preview button {
+            margin-top: 10px;
+        }
+
+        .image-preview.has-image {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+
+        /* Recording Indicator */
+        #recording-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #ffebee;
+            border-radius: 8px;
+            justify-content: center;
+        }
+
+        .recording-dot {
+            width: 12px;
+            height: 12px;
+            background: #f44336;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        #recording-timer {
+            font-weight: 600;
+            font-size: 18px;
+            color: #f44336;
+        }
+
+        /* Character Count */
+        .char-count {
+            float: right;
+            font-weight: normal;
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* Contact Form */
+        #contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #contact-form input {
+            margin-top: 5px;
+        }
+
+        /* Playback Controls */
+        #playback-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        #playback-controls button {
+            flex: 1;
+        }
+
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            #app {
+                max-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .section {
+                margin: 30px 20px;
+                padding: 40px 30px;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-20 {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Status bar -->
+    <div id="app-status" class="status-loading">Initializing...</div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p id="loading-text">Processing...</p>
+    </div>
+
+    <!-- Error message -->
+    <div id="error-message" class="error-message" style="display: none;"></div>
+
+    <!-- Success message -->
+    <div id="success-message" class="success-message" style="display: none;"></div>
+
+    <!-- Status message -->
+    <div id="status-message" style="display: none;"></div>
+
+    <!-- Main app container -->
+    <div id="app">
+
+        <!-- SECTION 1: CAPTURE -->
+        <section id="section-capture" class="section active">
+            <div class="section-header">
+                <h2>1. Capture Business Card</h2>
+                <p>Take a photo to extract contact information</p>
+            </div>
+
+            <div class="section-content">
+                <!-- Camera button -->
+                <button id="btn-take-photo-front" class="btn-primary">
+                    📷 Take Photo of Card Front
+                </button>
+
+                <!-- Image preview front -->
+                <div id="preview-front" class="image-preview"></div>
+
+                <!-- Optional back photo -->
+                <button id="btn-take-photo-back" class="btn-secondary">
+                    📷 Add Card Back (Optional)
+                </button>
+
+                <!-- Image preview back -->
+                <div id="preview-back" class="image-preview"></div>
+
+                <!-- Contact form (populated by AI) -->
+                <form id="contact-form">
+                    <div>
+                        <label>Name *</label>
+                        <input type="text" id="contact-name" required>
+                    </div>
+
+                    <div>
+                        <label>Email *</label>
+                        <input type="email" id="contact-email" required>
+                    </div>
+
+                    <div>
+                        <label>Company</label>
+                        <input type="text" id="contact-company">
+                    </div>
+
+                    <div>
+                        <label>Phone</label>
+                        <input type="tel" id="contact-phone">
+                    </div>
+
+                    <div>
+                        <label>LinkedIn URL</label>
+                        <input type="url" id="contact-linkedin">
+                    </div>
+
+                    <div>
+                        <label>Event Name *</label>
+                        <input type="text" id="event-name" list="event-suggestions" required>
+                        <datalist id="event-suggestions"></datalist>
+                    </div>
+                </form>
+
+                <!-- Continue button -->
+                <button id="btn-continue-to-notes" class="btn-primary">
+                    Continue to Notes →
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 2: NOTES -->
+        <section id="section-notes" class="section locked">
+            <div class="section-header">
+                <h2>2. Conversation Notes</h2>
+                <p>Record or type what you discussed</p>
+            </div>
+
+            <div class="section-content">
+                <!-- Voice recording controls -->
+                <div id="recording-controls">
+                    <button id="btn-start-recording" class="btn-primary">
+                        🎙️ Start Recording
+                    </button>
+                    <button id="btn-stop-recording" class="btn-danger hidden">
+                        ⏹️ Stop Recording
+                    </button>
+                </div>
+
+                <div id="recording-indicator" style="display: none;">
+                    <span class="recording-dot"></span>
+                    <span id="recording-timer">0:00</span>
+                </div>
+
+                <div id="playback-controls" class="hidden">
+                    <button id="btn-play-recording" class="btn-secondary">▶️ Playback</button>
+                    <button id="btn-rerecord" class="btn-secondary">🔄 Re-record</button>
+                </div>
+
+                <!-- Text input fallback -->
+                <div>
+                    <label>Type your notes:</label>
+                    <textarea id="voice-notes-text" rows="6"
+                        placeholder="Key points from your conversation..."></textarea>
+                </div>
+
+                <!-- Generate email button -->
+                <button id="btn-generate-email" class="btn-primary">
+                    Generate Email ✨
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 3: REVIEW -->
+        <section id="section-review" class="section locked">
+            <div class="section-header">
+                <h2>3. Review & Send</h2>
+                <p>Review and edit your personalized email</p>
+            </div>
+
+            <div class="section-content">
+                <!-- Email preview/edit -->
+                <div>
+                    <label>Subject</label>
+                    <input type="text" id="email-subject" class="email-field">
+                </div>
+
+                <div>
+                    <label>Body <span id="char-count" class="char-count"></span></label>
+                    <textarea id="email-body" rows="12" class="email-field"></textarea>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="button-group">
+                    <button id="btn-regenerate" class="btn-secondary">
+                        🔄 Regenerate
+                    </button>
+                    <button id="btn-send-email" class="btn-success">
+                        📧 Open in Email App
+                    </button>
+                </div>
+
+                <!-- Add another contact button (shown after send) -->
+                <button id="btn-add-another" class="btn-primary hidden">
+                    ➕ Add Another Contact
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // ==================== CONFIGURATION ====================
+        const CONFIG = {
+            claudeApiKey: 'CLAUDE_API_KEY_PLACEHOLDER',
+            webflowApiToken: 'WEBFLOW_TOKEN_PLACEHOLDER',
+            settingsCollectionId: 'SETTINGS_COLLECTION_ID_PLACEHOLDER',
+            contactsCollectionId: 'CONTACTS_COLLECTION_ID_PLACEHOLDER'
+        };
+
+        // ==================== UTILITY CLASSES ====================
+
+        class LoadingIndicator {
+            static show(message = 'Processing...') {
+                const loader = document.getElementById('loading-overlay');
+                const loaderText = document.getElementById('loading-text');
+
+                loaderText.textContent = message;
+                loader.style.display = 'flex';
+            }
+
+            static hide() {
+                const loader = document.getElementById('loading-overlay');
+                loader.style.display = 'none';
+            }
+
+            static async wrap(operation, message) {
+                this.show(message);
+                try {
+                    const result = await operation();
+                    return result;
+                } finally {
+                    this.hide();
+                }
+            }
+        }
+
+        class ErrorHandler {
+            static handle(error, context) {
+                console.error(`Error in ${context}:`, error);
+
+                const messages = {
+                    'camera': 'Camera access denied. Please enable camera permissions in your browser settings.',
+                    'extraction': 'Could not read business card. Please enter contact information manually.',
+                    'recording': 'Microphone access denied. You can type your notes instead.',
+                    'transcription': 'Could not transcribe audio. Please review and edit the text.',
+                    'generation': 'Could not generate email. Using template fallback.',
+                    'webflow': 'Warning: Could not save to database. Your email will still send.',
+                    'network': 'No internet connection. Please connect to continue.'
+                };
+
+                this.showError(messages[context] || 'An error occurred. Please try again.');
+            }
+
+            static showError(message) {
+                const errorDiv = document.getElementById('error-message');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                errorDiv.className = 'error-message show';
+
+                setTimeout(() => {
+                    errorDiv.classList.remove('show');
+                    setTimeout(() => {
+                        errorDiv.style.display = 'none';
+                    }, 300);
+                }, 5000);
+            }
+
+            static async retryWithFallback(operation, fallback) {
+                try {
+                    return await operation();
+                } catch (error) {
+                    console.error('Operation failed, using fallback:', error);
+                    return fallback();
+                }
+            }
+        }
+
+        // ==================== SERVICE CLASSES ====================
+
+        class ClaudeAPI {
+            constructor(apiKey) {
+                this.apiKey = apiKey;
+                this.baseURL = 'https://api.anthropic.com/v1/messages';
+            }
+
+            async extractContactInfo(imageBase64) {
+                try {
+                    // Remove data:image/jpeg;base64, prefix if present
+                    const base64Data = imageBase64.split(',')[1] || imageBase64;
+
+                    const response = await fetch(this.baseURL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': this.apiKey,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify({
+                            model: 'claude-3-5-sonnet-20241022',
+                            max_tokens: 1024,
+                            messages: [{
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'image',
+                                        source: {
+                                            type: 'base64',
+                                            media_type: 'image/jpeg',
+                                            data: base64Data
+                                        }
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: `Extract contact information from this business card image. Return ONLY valid JSON with these exact fields (use empty string if field not found):
+{
+  "name": "Full Name",
+  "email": "email@company.com",
+  "company": "Company Name",
+  "phone": "+1-555-0100",
+  "linkedin_url": "https://linkedin.com/in/username"
+}`
+                                    }
+                                ]
+                            }]
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Claude API error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const content = data.content[0].text;
+
+                    // Extract JSON from response (Claude might wrap it in markdown)
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (!jsonMatch) {
+                        throw new Error('No JSON found in response');
+                    }
+
+                    return JSON.parse(jsonMatch[0]);
+
+                } catch (error) {
+                    console.error('Contact extraction error:', error);
+                    // Return empty fields as fallback
+                    return {
+                        name: '',
+                        email: '',
+                        company: '',
+                        phone: '',
+                        linkedin_url: ''
+                    };
+                }
+            }
+
+            async generateNotesSummary(voiceNotes) {
+                if (!voiceNotes || voiceNotes.trim() === '') {
+                    return 'your insights and challenges';
+                }
+
+                try {
+                    const response = await fetch(this.baseURL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': this.apiKey,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify({
+                            model: 'claude-3-5-sonnet-20241022',
+                            max_tokens: 200,
+                            messages: [{
+                                role: 'user',
+                                content: `Based on these conversation notes from a networking event, create a brief 1-2 sentence summary that captures the key point discussed. This will be inserted into a follow-up email.
+
+Conversation notes:
+${voiceNotes}
+
+Create a natural-sounding summary that could complete this sentence:
+"I really enjoyed our conversation about..."
+
+Return ONLY the summary text, nothing else. Keep it under 30 words.`
+                            }]
+                        })
+                    });
+
+                    const data = await response.json();
+                    return data.content[0].text.trim();
+
+                } catch (error) {
+                    console.error('Notes summary error:', error);
+                    // Fallback: use first 100 chars of notes
+                    return voiceNotes.substring(0, 100) + '...';
+                }
+            }
+        }
+
+        class WebflowAPI {
+            constructor(apiToken, settingsCollectionId, contactsCollectionId) {
+                this.apiToken = apiToken;
+                this.settingsCollectionId = settingsCollectionId;
+                this.contactsCollectionId = contactsCollectionId;
+                this.baseURL = 'https://api.webflow.com/v2';
+                this.templateCache = null;
+            }
+
+            async fetchEmailTemplate() {
+                if (this.templateCache) {
+                    return this.templateCache;
+                }
+
+                try {
+                    const response = await fetch(
+                        `${this.baseURL}/collections/${this.settingsCollectionId}/items`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${this.apiToken}`,
+                                'accept': 'application/json'
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(`Webflow API error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const settings = data.items[0];
+
+                    this.templateCache = {
+                        subject: this.richTextToPlainText(settings.fieldData['email-subject-template']),
+                        body: this.richTextToPlainText(settings.fieldData['email-body-template']),
+                        calendlyUrl: settings.fieldData['calendly-url'],
+                        signature: this.richTextToPlainText(settings.fieldData['signature'])
+                    };
+
+                    return this.templateCache;
+
+                } catch (error) {
+                    console.error('Failed to fetch template:', error);
+                    return this.getHardcodedFallback();
+                }
+            }
+
+            getHardcodedFallback() {
+                return {
+                    subject: 'Great meeting you at {event}',
+                    body: `Hi {name},\n\nIt was great meeting you at {event}! I really enjoyed our conversation about {notes_summary}.\n\nAt Hite Labs, I help businesses like {company} turn operational chaos into smooth workflows through custom applications and process optimization. Based on what you shared, I think there could be a great fit.\n\nI'd love to continue the conversation - here's my calendar link: {calendly_url}\n\nLooking forward to connecting,\n{signature}`,
+                    calendlyUrl: 'https://calendly.com/russell-hite',
+                    signature: 'Russell Hite\nHite Labs\nhttps://hitelabs.com'
+                };
+            }
+
+            replaceVariables(template, data) {
+                return template
+                    .replace(/{name}/g, data.name || '[Name]')
+                    .replace(/{company}/g, data.company || '[Company]')
+                    .replace(/{event}/g, data.event || '[Event]')
+                    .replace(/{notes_summary}/g, data.notesSummary || '[Notes]')
+                    .replace(/{calendly_url}/g, data.calendlyUrl)
+                    .replace(/{signature}/g, data.signature);
+            }
+
+            richTextToPlainText(richText) {
+                if (typeof richText === 'string') return richText;
+                const div = document.createElement('div');
+                div.innerHTML = richText;
+                return div.textContent || div.innerText || '';
+            }
+
+            async createContact(contactData) {
+                try {
+                    const payload = {
+                        isArchived: false,
+                        isDraft: false,
+                        fieldData: {
+                            'name': contactData.name,
+                            'slug': this.generateSlug(contactData.name),
+                            'contact-name': contactData.name,
+                            'email': contactData.email,
+                            'company': contactData.company || '',
+                            'phone': contactData.phone || '',
+                            'linkedin-url': contactData.linkedinUrl || '',
+                            'event-name': contactData.eventName,
+                            'voice-notes': contactData.voiceNotes || '',
+                            'generated-email': contactData.generatedEmail,
+                            'email-subject': contactData.emailSubject,
+                            'status': 'Sent'
+                        }
+                    };
+
+                    const response = await fetch(
+                        `${this.baseURL}/collections/${this.contactsCollectionId}/items`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${this.apiToken}`,
+                                'Content-Type': 'application/json',
+                                'accept': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        }
+                    );
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Webflow save error: ${errorData.message || response.status}`);
+                    }
+
+                    const data = await response.json();
+                    return data;
+
+                } catch (error) {
+                    console.error('Failed to save contact:', error);
+
+                    // Retry once
+                    try {
+                        console.log('Retrying save...');
+                        return await this.createContact(contactData);
+                    } catch (retryError) {
+                        console.error('Retry failed:', retryError);
+                        throw retryError;
+                    }
+                }
+            }
+
+            generateSlug(name) {
+                return name
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '') + '-' + Date.now();
+            }
+        }
+
+        // ==================== COMPONENT CLASSES ====================
+
+        class CaptureSection {
+            constructor() {
+                this.frontImage = null;
+                this.backImage = null;
+                this.init();
+            }
+
+            init() {
+                document.getElementById('btn-take-photo-front').addEventListener('click', () => {
+                    this.openCamera('front');
+                });
+
+                document.getElementById('btn-take-photo-back').addEventListener('click', () => {
+                    this.openCamera('back');
+                });
+            }
+
+            openCamera(side) {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.capture = 'environment'; // Use rear camera
+
+                input.onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        LoadingIndicator.show('Processing image...');
+                        const compressed = await this.compressImage(file);
+                        this.previewImage(compressed, side);
+
+                        if (side === 'front') {
+                            this.frontImage = compressed;
+                            // Auto-extract contact info
+                            await this.extractContactInfo(compressed);
+                        } else {
+                            this.backImage = compressed;
+                        }
+                        LoadingIndicator.hide();
+                    }
+                };
+
+                input.click();
+            }
+
+            async compressImage(file) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+
+                            // Resize if too large
+                            const MAX_WIDTH = 1200;
+                            const MAX_HEIGHT = 1200;
+
+                            if (width > height) {
+                                if (width > MAX_WIDTH) {
+                                    height *= MAX_WIDTH / width;
+                                    width = MAX_WIDTH;
+                                }
+                            } else {
+                                if (height > MAX_HEIGHT) {
+                                    width *= MAX_HEIGHT / height;
+                                    height = MAX_HEIGHT;
+                                }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                            resolve(base64);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            previewImage(base64, side) {
+                const previewId = side === 'front' ? 'preview-front' : 'preview-back';
+                const preview = document.getElementById(previewId);
+                preview.className = 'image-preview has-image';
+                preview.innerHTML = `
+                    <img src="${base64}" alt="Card ${side}">
+                    <button onclick="window.captureSection.openCamera('${side}')" class="btn-secondary">Retake</button>
+                `;
+            }
+
+            async extractContactInfo(imageBase64) {
+                try {
+                    LoadingIndicator.show('Reading business card...');
+                    const contactInfo = await window.app.claudeAPI.extractContactInfo(imageBase64);
+
+                    // Fill in the form
+                    document.getElementById('contact-name').value = contactInfo.name;
+                    document.getElementById('contact-email').value = contactInfo.email;
+                    document.getElementById('contact-company').value = contactInfo.company;
+                    document.getElementById('contact-phone').value = contactInfo.phone;
+                    document.getElementById('contact-linkedin').value = contactInfo.linkedin_url;
+
+                    LoadingIndicator.hide();
+                } catch (error) {
+                    LoadingIndicator.hide();
+                    ErrorHandler.handle(error, 'extraction');
+                }
+            }
+
+            getContactData() {
+                return {
+                    name: document.getElementById('contact-name').value,
+                    email: document.getElementById('contact-email').value,
+                    company: document.getElementById('contact-company').value,
+                    phone: document.getElementById('contact-phone').value,
+                    linkedin_url: document.getElementById('contact-linkedin').value
+                };
+            }
+        }
+
+        class EventInput {
+            constructor() {
+                this.storageKey = 'recent_events';
+                this.currentEvent = '';
+                this.init();
+            }
+
+            init() {
+                this.loadRecentEvents();
+                document.getElementById('event-name').addEventListener('input', (e) => {
+                    this.currentEvent = e.target.value;
+                });
+            }
+
+            loadRecentEvents() {
+                const recent = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
+                const datalist = document.getElementById('event-suggestions');
+                datalist.innerHTML = recent.map(event =>
+                    `<option value="${event}">`
+                ).join('');
+
+                // Set most recent as default
+                if (recent.length > 0) {
+                    document.getElementById('event-name').value = recent[0];
+                    this.currentEvent = recent[0];
+                }
+            }
+
+            saveEvent(eventName) {
+                let recent = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
+
+                // Remove if already exists
+                recent = recent.filter(e => e !== eventName);
+
+                // Add to front
+                recent.unshift(eventName);
+
+                // Keep only last 5
+                recent = recent.slice(0, 5);
+
+                localStorage.setItem(this.storageKey, JSON.stringify(recent));
+            }
+        }
+
+        class VoiceRecorder {
+            constructor() {
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.audioBlob = null;
+                this.recordingStartTime = null;
+                this.maxDuration = 120000; // 2 minutes in ms
+                this.timerInterval = null;
+                this.init();
+            }
+
+            init() {
+                document.getElementById('btn-start-recording').addEventListener('click', () => {
+                    this.startRecording();
+                });
+
+                document.getElementById('btn-stop-recording').addEventListener('click', () => {
+                    this.stopRecording();
+                });
+
+                document.getElementById('btn-play-recording').addEventListener('click', () => {
+                    this.playback();
+                });
+
+                document.getElementById('btn-rerecord').addEventListener('click', () => {
+                    this.startRecording();
+                });
+            }
+
+            async startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    this.recordingStartTime = Date.now();
+
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        this.audioChunks.push(event.data);
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        this.audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                        this.showPlaybackControls();
+                    };
+
+                    this.mediaRecorder.start();
+                    this.showRecordingIndicator();
+
+                    // Auto-stop after 2 minutes
+                    setTimeout(() => {
+                        if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                            this.stopRecording();
+                        }
+                    }, this.maxDuration);
+
+                } catch (error) {
+                    console.error('Microphone access error:', error);
+                    ErrorHandler.handle(error, 'recording');
+                }
+            }
+
+            stopRecording() {
+                if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                    this.mediaRecorder.stop();
+                    this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    this.hideRecordingIndicator();
+                }
+            }
+
+            showRecordingIndicator() {
+                document.getElementById('recording-indicator').style.display = 'flex';
+                document.getElementById('btn-start-recording').classList.add('hidden');
+                document.getElementById('btn-stop-recording').classList.remove('hidden');
+
+                // Start timer
+                this.timerInterval = setInterval(() => {
+                    const elapsed = Date.now() - this.recordingStartTime;
+                    const seconds = Math.floor(elapsed / 1000);
+                    document.getElementById('recording-timer').textContent =
+                        `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+
+            hideRecordingIndicator() {
+                document.getElementById('recording-indicator').style.display = 'none';
+                document.getElementById('btn-stop-recording').classList.add('hidden');
+                document.getElementById('btn-start-recording').classList.remove('hidden');
+                clearInterval(this.timerInterval);
+            }
+
+            showPlaybackControls() {
+                document.getElementById('playback-controls').classList.remove('hidden');
+            }
+
+            playback() {
+                if (this.audioBlob) {
+                    const audio = new Audio(URL.createObjectURL(this.audioBlob));
+                    audio.play();
+                }
+            }
+
+            getAudioBlob() {
+                return this.audioBlob;
+            }
+        }
+
+        class NotesSection {
+            constructor() {
+                this.notes = '';
+                this.init();
+            }
+
+            init() {
+                document.getElementById('voice-notes-text').addEventListener('input', (e) => {
+                    this.notes = e.target.value;
+                });
+            }
+
+            getNotes() {
+                return document.getElementById('voice-notes-text').value || '';
+            }
+        }
+
+        class EmailGenerator {
+            constructor(claudeAPI, webflowAPI) {
+                this.claudeAPI = claudeAPI;
+                this.webflowAPI = webflowAPI;
+                this.template = null;
+            }
+
+            async initialize() {
+                this.template = await this.webflowAPI.fetchEmailTemplate();
+            }
+
+            async generateEmail(contactData, eventName, voiceNotes) {
+                try {
+                    // First, generate concise notes summary
+                    const notesSummary = await this.claudeAPI.generateNotesSummary(voiceNotes);
+
+                    // Prepare data for variable replacement
+                    const emailData = {
+                        name: contactData.name,
+                        company: contactData.company,
+                        event: eventName,
+                        notesSummary: notesSummary,
+                        calendlyUrl: this.template.calendlyUrl,
+                        signature: this.template.signature
+                    };
+
+                    // Replace variables in template
+                    const subject = this.webflowAPI.replaceVariables(this.template.subject, emailData);
+                    const body = this.webflowAPI.replaceVariables(this.template.body, emailData);
+
+                    return {
+                        subject: subject,
+                        body: body
+                    };
+
+                } catch (error) {
+                    console.error('Email generation error:', error);
+                    // Return template with minimal replacements as fallback
+                    return this.generateFallbackEmail(contactData, eventName);
+                }
+            }
+
+            generateFallbackEmail(contactData, eventName) {
+                return {
+                    subject: `Great meeting you at ${eventName}`,
+                    body: `Hi ${contactData.name},\n\nIt was great meeting you at ${eventName}! I enjoyed learning about ${contactData.company}.\n\nLet's continue the conversation: https://calendly.com/russell-hite\n\nBest regards,\nRussell Hite\nHite Labs`
+                };
+            }
+        }
+
+        class ReviewSection {
+            constructor() {
+                this.emailData = null;
+                this.init();
+            }
+
+            init() {
+                document.getElementById('btn-regenerate').addEventListener('click', () => {
+                    this.regenerateEmail();
+                });
+
+                document.getElementById('email-body').addEventListener('input', () => {
+                    this.updateCharCount();
+                });
+            }
+
+            displayEmail(emailData) {
+                this.emailData = emailData;
+
+                document.getElementById('email-subject').value = emailData.subject;
+                document.getElementById('email-body').value = emailData.body;
+
+                this.updateCharCount();
+                this.unlockSection();
+            }
+
+            updateCharCount() {
+                const body = document.getElementById('email-body').value;
+                const count = body.length;
+                document.getElementById('char-count').textContent = `${count} characters`;
+            }
+
+            getCurrentEmail() {
+                return {
+                    subject: document.getElementById('email-subject').value,
+                    body: document.getElementById('email-body').value
+                };
+            }
+
+            async regenerateEmail() {
+                // Show loading
+                LoadingIndicator.show('Regenerating email...');
+
+                // Get current contact data and regenerate
+                const contactData = window.captureSection.getContactData();
+                const eventName = window.eventInput.currentEvent;
+                const notes = window.notesSection.getNotes();
+
+                const newEmail = await window.app.emailGenerator.generateEmail(contactData, eventName, notes);
+                this.displayEmail(newEmail);
+
+                LoadingIndicator.hide();
+            }
+
+            unlockSection() {
+                document.getElementById('section-review').classList.remove('locked');
+                document.getElementById('section-review').classList.add('active');
+                document.getElementById('section-review').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        class EmailSender {
+            static send(toEmail, subject, body) {
+                try {
+                    // Construct mailto URL
+                    const mailtoURL = `mailto:${toEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                    // Check URL length (some email clients have ~2000 char limit)
+                    if (mailtoURL.length > 2000) {
+                        console.warn('mailto URL too long, using clipboard fallback');
+                        return this.copyToClipboard(toEmail, subject, body);
+                    }
+
+                    // Open email client
+                    window.location.href = mailtoURL;
+
+                    // Show success message
+                    this.showSuccessMessage();
+
+                    return true;
+
+                } catch (error) {
+                    console.error('mailto error:', error);
+                    return this.copyToClipboard(toEmail, subject, body);
+                }
+            }
+
+            static copyToClipboard(toEmail, subject, body) {
+                const fullEmail = `To: ${toEmail}\nSubject: ${subject}\n\n${body}`;
+
+                navigator.clipboard.writeText(fullEmail).then(() => {
+                    alert('Email copied to clipboard! Open your email app and paste (Ctrl/Cmd+V).');
+                    return true;
+                }).catch((error) => {
+                    console.error('Clipboard error:', error);
+                    alert('Please manually copy the email above and paste into your email app.');
+                    return false;
+                });
+            }
+
+            static showSuccessMessage() {
+                const message = document.getElementById('success-message');
+                message.style.display = 'block';
+                message.className = 'success-message show';
+                message.textContent = '✓ Email draft opened! Review and send from your email app.';
+
+                setTimeout(() => {
+                    message.classList.remove('show');
+                    setTimeout(() => {
+                        message.style.display = 'none';
+                    }, 300);
+                }, 5000);
+            }
+        }
+
+        // ==================== MAIN APP CLASS ====================
+
+        class NetworkingApp {
+            constructor(config) {
+                this.config = config;
+                this.init();
+            }
+
+            async init() {
+                try {
+                    // Show loading
+                    LoadingIndicator.show('Initializing app...');
+
+                    // Initialize services
+                    this.claudeAPI = new ClaudeAPI(this.config.claudeApiKey);
+                    this.webflowAPI = new WebflowAPI(
+                        this.config.webflowApiToken,
+                        this.config.settingsCollectionId,
+                        this.config.contactsCollectionId
+                    );
+
+                    // Initialize components
+                    window.captureSection = new CaptureSection();
+                    window.eventInput = new EventInput();
+                    window.voiceRecorder = new VoiceRecorder();
+                    window.notesSection = new NotesSection();
+                    window.reviewSection = new ReviewSection();
+
+                    // Initialize email generator
+                    this.emailGenerator = new EmailGenerator(this.claudeAPI, this.webflowAPI);
+                    await this.emailGenerator.initialize(); // Fetches template
+
+                    // Set up workflow
+                    this.setupWorkflow();
+
+                    // Hide loading
+                    LoadingIndicator.hide();
+                    this.showReady();
+
+                } catch (error) {
+                    console.error('App initialization error:', error);
+                    LoadingIndicator.hide();
+                    ErrorHandler.showError('Failed to initialize app. Please refresh the page.');
+                }
+            }
+
+            setupWorkflow() {
+                // Continue button from Capture to Notes
+                document.getElementById('btn-continue-to-notes').addEventListener('click', async () => {
+                    if (await this.validateCaptureSection()) {
+                        this.unlockNotesSection();
+                    }
+                });
+
+                // Generate email button from Notes to Review
+                document.getElementById('btn-generate-email').addEventListener('click', async () => {
+                    await this.generateAndDisplayEmail();
+                });
+
+                // Send email button
+                document.getElementById('btn-send-email').addEventListener('click', async () => {
+                    await this.sendAndSaveEmail();
+                });
+
+                // Add another contact button
+                document.getElementById('btn-add-another').addEventListener('click', () => {
+                    this.resetForNewContact();
+                });
+            }
+
+            async validateCaptureSection() {
+                const contactData = window.captureSection.getContactData();
+                const eventName = window.eventInput.currentEvent;
+
+                if (!window.captureSection.frontImage) {
+                    ErrorHandler.showError('Please take a photo of the business card.');
+                    return false;
+                }
+
+                if (!contactData.name || !contactData.email) {
+                    ErrorHandler.showError('Please ensure Name and Email are filled in.');
+                    return false;
+                }
+
+                if (!eventName) {
+                    ErrorHandler.showError('Please enter the event name.');
+                    return false;
+                }
+
+                return true;
+            }
+
+            unlockNotesSection() {
+                document.getElementById('section-capture').classList.add('complete');
+                document.getElementById('section-notes').classList.remove('locked');
+                document.getElementById('section-notes').classList.add('active');
+
+                // Scroll to notes section
+                document.getElementById('section-notes').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            async generateAndDisplayEmail() {
+                try {
+                    LoadingIndicator.show('Generating personalized email...');
+
+                    const contactData = window.captureSection.getContactData();
+                    const eventName = window.eventInput.currentEvent;
+                    const notes = window.notesSection.getNotes();
+
+                    const email = await this.emailGenerator.generateEmail(contactData, eventName, notes);
+
+                    window.reviewSection.displayEmail(email);
+
+                    // Mark notes section complete
+                    document.getElementById('section-notes').classList.add('complete');
+
+                    LoadingIndicator.hide();
+
+                } catch (error) {
+                    LoadingIndicator.hide();
+                    ErrorHandler.handle(error, 'generation');
+                }
+            }
+
+            async sendAndSaveEmail() {
+                try {
+                    const email = window.reviewSection.getCurrentEmail();
+                    const contactData = window.captureSection.getContactData();
+
+                    // Send email via mailto
+                    EmailSender.send(contactData.email, email.subject, email.body);
+
+                    // Save event name to history
+                    window.eventInput.saveEvent(window.eventInput.currentEvent);
+
+                    // Save to Webflow (don't block on this)
+                    this.saveContactToWebflow(contactData, email).catch(error => {
+                        console.error('Background save failed:', error);
+                        ErrorHandler.handle(error, 'webflow');
+                    });
+
+                    // Show success and add another option
+                    document.getElementById('btn-add-another').classList.remove('hidden');
+                    document.getElementById('section-review').classList.add('complete');
+
+                } catch (error) {
+                    ErrorHandler.showError('Failed to send email. Please try again.');
+                }
+            }
+
+            async saveContactToWebflow(contactData, email) {
+                LoadingIndicator.show('Saving contact...');
+
+                const saveData = {
+                    name: contactData.name,
+                    email: contactData.email,
+                    company: contactData.company,
+                    phone: contactData.phone,
+                    linkedinUrl: contactData.linkedin_url,
+                    eventName: window.eventInput.currentEvent,
+                    voiceNotes: window.notesSection.getNotes(),
+                    generatedEmail: email.body,
+                    emailSubject: email.subject,
+                    cardImageFront: window.captureSection.frontImage,
+                    cardImageBack: window.captureSection.backImage
+                };
+
+                await this.webflowAPI.createContact(saveData);
+
+                LoadingIndicator.hide();
+                this.showMessage('✓ Contact saved to database');
+            }
+
+            showReady() {
+                document.getElementById('app-status').textContent = '✓ Ready';
+                document.getElementById('app-status').className = 'status-ready';
+            }
+
+            showMessage(text) {
+                const message = document.getElementById('status-message');
+                message.textContent = text;
+                message.style.display = 'block';
+                message.className = 'success-message show';
+
+                setTimeout(() => {
+                    message.classList.remove('show');
+                    setTimeout(() => {
+                        message.style.display = 'none';
+                    }, 300);
+                }, 3000);
+            }
+
+            resetForNewContact() {
+                // Keep event name
+                const currentEvent = window.eventInput.currentEvent;
+
+                // Clear capture section
+                window.captureSection.frontImage = null;
+                window.captureSection.backImage = null;
+                document.getElementById('preview-front').innerHTML = '';
+                document.getElementById('preview-front').className = 'image-preview';
+                document.getElementById('preview-back').innerHTML = '';
+                document.getElementById('preview-back').className = 'image-preview';
+                document.getElementById('contact-form').reset();
+
+                // Clear notes section
+                document.getElementById('voice-notes-text').value = '';
+                document.getElementById('playback-controls').classList.add('hidden');
+
+                // Clear review section
+                document.getElementById('email-subject').value = '';
+                document.getElementById('email-body').value = '';
+                document.getElementById('btn-add-another').classList.add('hidden');
+
+                // Restore event name
+                document.getElementById('event-name').value = currentEvent;
+                window.eventInput.currentEvent = currentEvent;
+
+                // Reset section states
+                document.getElementById('section-capture').classList.remove('complete');
+                document.getElementById('section-capture').classList.add('active');
+                document.getElementById('section-notes').classList.remove('complete', 'active');
+                document.getElementById('section-notes').classList.add('locked');
+                document.getElementById('section-review').classList.remove('complete', 'active');
+                document.getElementById('section-review').classList.add('locked');
+
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Show reset message
+                this.showMessage('Ready for next contact!');
+            }
+        }
+
+        // ==================== APP INITIALIZATION ====================
+
+        // Initialize app when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new NetworkingApp(CONFIG);
+        });
+    </script>
+</body>
+</html>
