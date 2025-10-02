@@ -1,8 +1,9 @@
 # Environment variables - Contains real API keys
 .env
 
-# Production build - Contains real API keys
+# Production builds - Contains real API keys
 index-production.html
+webflow-deploy/
 
 # NPM dependencies
 node_modules/
